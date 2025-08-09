@@ -4,7 +4,7 @@ using AzureSqlWebApiSample.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add EF Core DbContext with SQL Server
+// EF Core + SQL Server
 var connString = builder.Configuration.GetConnectionString("DefaultConnection")
                  ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<AppDbContext>(opts => opts.UseSqlServer(connString));
@@ -14,16 +14,26 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Auto-create database schema (demo purpose only). In production, use migrations.
+// NOT: Startup'ta DB'ye dokunmayı kaldırdık (EnsureCreated yok). 
+// Amaç: App Service ayağa kalksın; DB hatasını endpoint çağrısında görelim.
 
-app.MapGet("/db-ping", async (AzureSqlWebApiSample.Data.AppDbContext db) =>
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
+// DB bağlantısını hızlı kontrol eden endpoint
+app.MapGet("/db-ping", async (AppDbContext db) =>
 {
     try
     {
         await db.Database.OpenConnectionAsync();
         await using var cmd = db.Database.GetDbConnection().CreateCommand();
         cmd.CommandText = "SELECT 1";
-        var _ = await cmd.ExecuteScalarAsync();
+        _ = await cmd.ExecuteScalarAsync();
         return Results.Ok(new { ok = true });
     }
     catch (Exception ex)
@@ -36,21 +46,7 @@ app.MapGet("/db-ping", async (AzureSqlWebApiSample.Data.AppDbContext db) =>
     }
 });
 
-//using (var scope = app.Services.CreateScope())
-// {
-   // var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-  //  await db.Database.EnsureCreatedAsync();
-// }
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-
-// CRUD endpoints for TodoItem
+// Basit CRUD (TodoItem)
 app.MapGet("/api/todos", async (AppDbContext db) => await db.Todos.OrderByDescending(t => t.Id).ToListAsync());
 
 app.MapGet("/api/todos/{id:int}", async (int id, AppDbContext db) =>

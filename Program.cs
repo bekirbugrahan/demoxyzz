@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 // EF Core + SQL Server
 var connString = builder.Configuration.GetConnectionString("DefaultConnection")
                  ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<AppDbContext>(opts => opts.UseSqlServer(connString));
+builder.Services.AddDbContext<AppDbContext>(opts => opts.UseNpgsql(connString));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

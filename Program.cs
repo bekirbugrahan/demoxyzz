@@ -14,18 +14,17 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// NOT: Startup'ta DB'ye dokunmayı kaldırdık (EnsureCreated yok). 
-// Amaç: App Service ayağa kalksın; DB hatasını endpoint çağrısında görelim.
+// Swagger'ı prod'da da aç
+app.UseSwagger();
+app.UseSwaggerUI();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Root -> bilgi sayfası veya Swagger'a yönlendir
+app.MapGet("/", () => Results.Redirect("/swagger"));
+// alternatif istersen: app.MapGet("/", () => "OK — /health, /db-ping, /api/todos");
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
-// DB bağlantısını hızlı kontrol eden endpoint
+// DB bağlantısını test eden uç
 app.MapGet("/db-ping", async (AppDbContext db) =>
 {
     try
@@ -46,10 +45,7 @@ app.MapGet("/db-ping", async (AppDbContext db) =>
     }
 });
 
-// Basit CRUD (TodoItem)
-
-app.MapGet("/", () => Results.Redirect("/health"));
-
+// CRUD (TodoItem)
 app.MapGet("/api/todos", async (AppDbContext db) => await db.Todos.OrderByDescending(t => t.Id).ToListAsync());
 
 app.MapGet("/api/todos/{id:int}", async (int id, AppDbContext db) =>
@@ -84,9 +80,5 @@ app.MapDelete("/api/todos/{id:int}", async (int id, AppDbContext db) =>
     await db.SaveChangesAsync();
     return Results.NoContent();
 });
-app.UseSwagger();
-app.UseSwaggerUI();
-app.MapGet("/", () => Results.Redirect("/swagger"));
-
 
 app.Run();

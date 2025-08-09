@@ -84,5 +84,9 @@ app.MapDelete("/api/todos/{id:int}", async (int id, AppDbContext db) =>
     await db.SaveChangesAsync();
     return Results.NoContent();
 });
+app.UseSwagger();
+app.UseSwaggerUI();
+app.MapGet("/", () => Results.Redirect("/swagger"));
+
 
 app.Run();

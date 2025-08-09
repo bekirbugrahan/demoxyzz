@@ -47,6 +47,9 @@ app.MapGet("/db-ping", async (AppDbContext db) =>
 });
 
 // Basit CRUD (TodoItem)
+
+app.MapGet("/", () => Results.Redirect("/health"));
+
 app.MapGet("/api/todos", async (AppDbContext db) => await db.Todos.OrderByDescending(t => t.Id).ToListAsync());
 
 app.MapGet("/api/todos/{id:int}", async (int id, AppDbContext db) =>

@@ -15,11 +15,32 @@ builder.Services.AddSwaggerGen();
 var app = builder.Build();
 
 // Auto-create database schema (demo purpose only). In production, use migrations.
-using (var scope = app.Services.CreateScope())
+
+app.MapGet("/db-ping", async (AzureSqlWebApiSample.Data.AppDbContext db) =>
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        await db.Database.OpenConnectionAsync();
+        await using var cmd = db.Database.GetDbConnection().CreateCommand();
+        cmd.CommandText = "SELECT 1";
+        var _ = await cmd.ExecuteScalarAsync();
+        return Results.Ok(new { ok = true });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(ex.Message);
+    }
+    finally
+    {
+        await db.Database.CloseConnectionAsync();
+    }
+});
+
+//using (var scope = app.Services.CreateScope())
+// {
+   // var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
   //  await db.Database.EnsureCreatedAsync();
-}
+// }
 
 if (app.Environment.IsDevelopment())
 {
